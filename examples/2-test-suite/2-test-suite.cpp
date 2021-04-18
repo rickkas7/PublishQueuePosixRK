@@ -20,7 +20,8 @@ enum {
 	TEST_PUBLISH_OFFLINE_RESET, // 7 go offline, publish some events, reset device, number is param0, optional size in param2
     TEST_CLEAR_QUEUES, // 8 clear RAM and file-based queues
     TEST_SET_RAM_QUEUE_LEN, // 9 set RAM queue length (param0 = length)
-    TEST_SET_FILE_QUEUE_LEN // 10 set file queue length (param0 = length)
+    TEST_SET_FILE_QUEUE_LEN, // 10 set file queue length (param0 = length)
+    TEST_SAVE_QUEUE // 11 set RAM queue to 10, publish 10 events, reset (optional number of events is param0, optional size in param2)
 };
 
 // Example:
@@ -47,6 +48,8 @@ void setup() {
 	waitFor(Serial.isConnected, 10000);
     delay(1000);
     
+    // This allows a graceful shutdown on System.reset()
+    Particle.setDisconnectOptions(CloudDisconnectOptions().graceful(true).timeout(5000));
 
 	Particle.function("test", testHandler);
 	PublishQueuePosix::instance().setup();
@@ -114,6 +117,30 @@ void loop() {
 		Log.info("Going to Particle.connect()...");
 		Particle.connect();
 	}
+    else
+    if (testNum == TEST_SAVE_QUEUE) {
+		int count = (intParam[0] == 0) ? 10 : intParam[0];
+		int size = intParam[1];
+
+		Log.info("TEST_SAVE_QUEUE count=%d", count);
+
+        Log.info("set RAM queue length %d", intParam[0]);
+        PublishQueuePosix::instance().withRamQueueSize(intParam[0]);
+
+		Log.info("before publishing numEvents=%u", PublishQueuePosix::instance().getNumEvents());
+
+		for(int ii = 0; ii < count; ii++) {
+			publishPaddedCounter(size);
+		}
+
+		Log.info("after publishing numEvents=%u", PublishQueuePosix::instance().getNumEvents());
+
+        Log.info("resetting device...");	
+
+        delay(100);
+        System.reset();
+
+    }
 }
 
 void publishCounter(bool withAck) {

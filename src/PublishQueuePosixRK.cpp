@@ -22,7 +22,7 @@ void PublishQueuePosix::setup() {
     os_mutex_recursive_create(&mutex);
 
     // Register a system reset handler
-    System.on(reset, systemEventHandler);
+    System.on(reset | cloud_status, systemEventHandler);
 
     // Start the background publish thread
     BackgroundPublish::instance().start();
@@ -322,7 +322,9 @@ PublishQueuePosix::~PublishQueuePosix() {
 }
 
 void PublishQueuePosix::systemEventHandler(system_event_t event, int param) {
-    _log.trace("reset handler");
-    PublishQueuePosix::instance().writeQueueToFiles();
+    if ((event == reset) || ((event == cloud_status) && (param == cloud_status_disconnecting))) {
+        _log.trace("reset or disconnect event, save files to queue");
+        PublishQueuePosix::instance().writeQueueToFiles();
+    }
 }
 
