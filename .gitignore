@@ -4,3 +4,4 @@ target
 .DS_Store
 docs/docs.md
 docs/xml
+node_modules

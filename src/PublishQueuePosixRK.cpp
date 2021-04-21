@@ -18,6 +18,25 @@ PublishQueuePosix &PublishQueuePosix::instance() {
     return *_instance;
 }
 
+PublishQueuePosix &PublishQueuePosix::withRamQueueSize(size_t size) { 
+    ramQueueSize = size;
+
+    if (stateHandler) {
+        checkQueueLimits();
+    }
+    return *this; 
+}
+
+
+PublishQueuePosix &PublishQueuePosix::withFileQueueSize(size_t size) {
+    fileQueueSize = size; 
+
+    if (stateHandler) {
+        checkQueueLimits();
+    }
+    return *this; 
+}
+
 void PublishQueuePosix::setup() {
     os_mutex_recursive_create(&mutex);
 
@@ -28,6 +47,8 @@ void PublishQueuePosix::setup() {
     BackgroundPublish::instance().start();
 
     fileQueue.scanDir();
+
+    checkQueueLimits();
 
     stateHandler = &PublishQueuePosix::stateConnectWait;
 }
@@ -60,6 +81,7 @@ bool PublishQueuePosix::publishCommon(const char *eventName, const char *eventDa
             // We need to move the queue to the file system
             writeQueueToFiles();
         }
+        checkQueueLimits();
     }
 
 
@@ -128,7 +150,7 @@ PublishQueueEvent *PublishQueuePosix::readQueueFile(int fileNum) {
         struct stat sb;
         fstat(fd, &sb);
 
-        _log.trace("fileNum=%d size=%u", fileNum, sb.st_size);
+        _log.trace("fileNum=%d size=%ld", fileNum, sb.st_size);
 
         PublishQueueFileHeader hdr;
         
@@ -157,7 +179,7 @@ PublishQueueEvent *PublishQueuePosix::readQueueFile(int fileNum) {
 
             }
         } else {
-            _log.trace("readQueueFile %d bad magic=%08x version=%u headerSize=%u nameLen=%u", fileNum, hdr.magic, hdr.version, hdr.headerSize, hdr.nameLen);
+            _log.trace("readQueueFile %d bad magic=%08lx version=%u headerSize=%u nameLen=%u", fileNum, hdr.magic, hdr.version, hdr.headerSize, hdr.nameLen);
         }
 
         close(fd);
@@ -186,7 +208,7 @@ void PublishQueuePosix::checkQueueLimits() {
             writeQueueToFiles();
         }
 
-        while(fileQueue.getQueueLen() > fileQueueSize) {
+        while(fileQueue.getQueueLen() > (int)fileQueueSize) {
             int fileNum = fileQueue.getFileFromQueue(true);
             if (fileNum) {
                 fileQueue.removeFileNum(fileNum, false);
@@ -203,6 +225,15 @@ size_t PublishQueuePosix::getNumEvents() {
         result = ramQueue.size();
         if (result == 0) {
             result = fileQueue.getQueueLen();
+
+            if (curEvent && curFileNum == 0) {
+                // This happens when we are sending an event from the RAM queue
+                // It's not in the RAM queue, but we want to count it, because
+                // otherwise getNumEvents would return 1 for the event sent from
+                // a file (because the file is not deleted until sent) and
+                // this makes the behavior consistent.
+                result++;
+            }
         }
     }
     return result;
@@ -250,6 +281,7 @@ void PublishQueuePosix::stateWait() {
     else {
         if (!ramQueue.empty()) {
             curEvent = ramQueue.front();
+            ramQueue.pop_front();
         }
         else {
             curEvent = NULL;
@@ -262,7 +294,7 @@ void PublishQueuePosix::stateWait() {
         publishComplete = false;
         publishSuccess = false;
 
-        _log.trace("publishing %s event=%s data=%s", curEvent ? "file" : "ram", curEvent->eventName, curEvent->eventData);
+        _log.trace("publishing %s event=%s data=%s", (curFileNum ? "file" : "ram"), curEvent->eventName, curEvent->eventData);
 
         if (BackgroundPublish::instance().publish(curEvent->eventName, curEvent->eventData, curEvent->flags, 
             [this](bool succeeded, const char *eventName, const char *eventData, const void *context) {
@@ -291,21 +323,27 @@ void PublishQueuePosix::statePublishWait() {
             }
             curFileNum = 0;
         }
-        else {
-            // Was from the RAM-based queue
-            WITH_LOCK(*this) {
-                ramQueue.pop_front();
-            }
-        }
+
         delete curEvent;
         curEvent = NULL;
-
         durationMs = waitBetweenPublish;
     }
     else {
         // Wait and retry
         _log.trace("publish failed %d", curFileNum);
         durationMs = waitAfterFailure;
+
+        if (curFileNum) {
+            // Was from the file-based queue
+            delete curEvent;
+            curEvent = NULL;
+        }
+        else {
+            // Was in the RAM-based queue, put back
+            WITH_LOCK(*this) {
+                ramQueue.push_front(curEvent);
+            }
+        }
     }
 
     stateHandler = &PublishQueuePosix::stateWait;

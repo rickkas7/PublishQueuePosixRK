@@ -6,35 +6,76 @@
 
 #include <deque>
 
+/**
+ * @brief Structure stored before the event data in files on the flash file system
+ * 
+ * Each file is sequentially numbered and has one event. The contents of the file
+ * are this header (8 bytes) followed by the PublishQueueEvent structure, which
+ * is variably sized based on the size of the event.    
+ */
 struct PublishQueueFileHeader {
-    uint32_t magic;
-    uint8_t version;
-    uint8_t headerSize;
-    uint16_t nameLen;
+    uint32_t magic;         //!< PublishQueuePosix::FILE_MAGIC = 0x31b67663
+    uint8_t version;        //!< PublishQueuePosix::FILE_VERSION = 1
+    uint8_t headerSize;     //!< sizeof(PublishQueueFileHeader) = 8
+    uint16_t nameLen;       //!< sizeof(PublishQueueEvent::eventName) = 64
 };
 
+/**
+ * @brief Structure to hold an event in RAM or in files
+ * 
+ * In RAM, this structure is stored in the ramQueue. 
+ * 
+ * On the flash file system, each file contains one event and consists of the
+ * PublishQueueFileHeader above (8 bytes) plus this structure.
+ * 
+ * Note that the eventData is specified as 1 byte here, but it's actually
+ * sized to fit the event data with a null terminator.
+ */
 struct PublishQueueEvent {
-    PublishFlags flags;
-    char eventName[particle::protocol::MAX_EVENT_NAME_LENGTH + 1];
-    char eventData[1]; // Variable size
+    PublishFlags flags; //!< NO_ACK or WITH_ACK. Can use PRIVATE, but that's no longer needed.
+    char eventName[particle::protocol::MAX_EVENT_NAME_LENGTH + 1]; //!< c-string event name (required)
+    char eventData[1]; //!< Variable size event data
 };
 
+/**
+ * @brief Class for asynchronous publishing of events
+ * 
+ */
 class PublishQueuePosix {
 public:
+    /**
+     * @brief Gets the singleton instance of this class
+     * 
+     * You cannot construct a PublishQueuePosix object as a global variable,
+     * stack variable, or with new. You can only request the singleton instance.
+     */
     static PublishQueuePosix &instance();
 
     /**
-     * @brief You must call this from setup() to initialize this library
+     * @brief Sets the RAM based queue size (default is 2)
+     * 
+     * You can set this to 0 and the events will be stored on the flash
+     * file system immediately. This is the best option if the events must
+     * not be lost in the event of a sudden reboot. 
+     * 
+     * It's more efficient to have a small RAM-based queue and it eliminates
+     * flash wear. Make sure you set the size larger than the maximum number
+     * of events you plan to send out in bursts, as if you exceed the RAM
+     * queue size, all outstanding events will be moved to files.
      */
-    void setup();
-
-    PublishQueuePosix &withRamQueueSize(size_t size) { ramQueueSize = size; return *this; };
+    PublishQueuePosix &withRamQueueSize(size_t size);
 
     size_t getRamQueueSize() const { return ramQueueSize; };
 
-    PublishQueuePosix &withFileQueueSize(size_t size) { fileQueueSize = size; return *this; };
+    /**
+     * @brief Sets the file-based queue size (default is 100)
+     * 
+     * If you exceed this number of events, the oldest event is discarded.
+     */
+    PublishQueuePosix &withFileQueueSize(size_t size);
 
     size_t getFileQueueSize() const { return fileQueueSize; };
+
 
     /**
      * @brief Sets the directory to use as the queue directory. This is required!
@@ -59,7 +100,14 @@ public:
      */
     const char *getDirPath() const { return fileQueue.getDirPath(); };
 
+    /**
+     * @brief You must call this from setup() to initialize this library
+     */
+    void setup();
 
+    /**
+     * @brief You must call the loop method from the global loop() function!
+     */
     void loop();
 
 	/**
@@ -146,19 +194,35 @@ public:
 	 */
 	virtual bool publishCommon(const char *eventName, const char *data, int ttl, PublishFlags flags1, PublishFlags flags2 = PublishFlags());
 
-
-    PublishQueueEvent *newRamEvent(const char *eventName, const char *eventData, PublishFlags flags);
-
+    /**
+     * @brief If there are events in the RAM queue, write them to files in the flash file system
+     */
     void writeQueueToFiles();
 
-    PublishQueueEvent *readQueueFile(int fileNum);
-
+    /**
+     * @brief Empty both the RAM and file based queues. Any queued events are discarded. 
+     */
     void clearQueues();
 
-    void checkQueueLimits();
-
+    /**
+     * @brief Pause or resume publishing events
+     * 
+     * If called while a publish is in progress, that publish will still proceed, but
+     * the next event (if any) will not be attempted.
+     */
     void setPausePublishing(bool value) { pausePublishing = value; }
 
+    bool getPausePublishing() const { return pausePublishing; };
+
+    /**
+     * @brief Gets the total number of events queued
+     * 
+     * This is the number of events in the RAM-based queue and the file-based
+     * queue. This operation is fast; the file queue length is stored in RAM,
+     * so this command does not need to access the file system.
+     * 
+     * If an event is currently being sent, the result includes this event.
+     */
     size_t getNumEvents();
 
     void lock() { os_mutex_recursive_lock(mutex); };
@@ -181,6 +245,18 @@ protected:
      * @brief This class is not copyable
      */
     PublishQueuePosix& operator=(const PublishQueuePosix&) = delete;
+
+    PublishQueueEvent *newRamEvent(const char *eventName, const char *eventData, PublishFlags flags);
+
+    PublishQueueEvent *readQueueFile(int fileNum);
+
+    /**
+     * @brief Check the queue limit, discarding events as necessary
+     * 
+     * When the RAM queue exceeds the limit, all events are moved into files. 
+     */
+    void checkQueueLimits();
+
 
     void publishCompleteCallback(bool succeeded, const char *eventName, const char *eventData);
 
