@@ -51,16 +51,17 @@ const SerialPort = require('serialport');
                     line = line.trim();
                     if (line) {
                         serialMonitor.lines.push(line);
-                        console.log('serial line ' + line);    
+                        console.log('serial line ' + line);   
 
                         for(let ii = 0; ii < serialMonitor.monitors.length; ii++) {
                             let mon = serialMonitor.monitors[ii];
+                            mon.resolveData = line; 
                             if (mon.checkLine(line)) {
                                 // Remove this monitor
                                 serialMonitor.monitors.splice(ii, 1);
                                 ii--;
         
-                                mon.completion(line);
+                                mon.completion();
                             }
                         }
         
@@ -90,12 +91,74 @@ const SerialPort = require('serialport');
         await prom;
     };
 
+    serialMonitor.command = async function(cmd) {
+        const mon = serialMonitor.monitor({
+            msgAny:true,
+            noHistoryCheck:true,
+            timeout:5000,
+        });
 
+        await serialMonitor.write(cmd + '\n');
+
+        return mon;
+    }
+
+    serialMonitor.jsonCommand = async function(cmd) {
+        const mon = serialMonitor.monitor({
+            msgJson:true,
+            noHistoryCheck:true,
+            timeout:5000,
+        });
+
+        await serialMonitor.write(cmd + '\n');
+
+        return mon;
+    }
+    
     serialMonitor.monitor = function(options) {
         let mon = {};
         mon.options = options;
 
         mon.checkLine = function(line) {
+            const m = line.match(/([0-9]+) \[([^\]]+)\] ([A-Z]+): (.*)/);
+            if (m && m.length >= 5) {
+                const ts = parseInt(m[1], 10);
+                const category = m[2];
+                const level = m[3];
+                const msg = m[4];
+
+                console.log('msg ' + msg);
+
+                if (options.category) {
+                    if (options.category !== category) {
+                        return false;
+                    }
+                }
+                if (options.level) {
+                    if (options.level !== level) {
+                        return false;
+                    }
+                }
+                if (options.msgIncludes) {
+                    if (!msg.includes(options.msgIncludes)) {
+                        return false;
+                    }
+                }                
+                if (options.msgJson) {
+                    try {
+                        mon.resolveData = JSON.parse(msg);
+                        return true;
+                    }
+                    catch(e) {
+                        return false;
+                    }
+                }
+                if (options.msgAny) {
+                    mon.resolveData = msg;
+                    return true;
+                }
+            }
+
             if (options.lineIncludes) {
                 if (!line.includes(options.lineIncludes)) {
                     return false;
@@ -105,22 +168,24 @@ const SerialPort = require('serialport');
             return true;
         };
 
-        mon.completion = function(data) {
+        mon.completion = function() {
             if (mon.completionResolve) {
                 if (mon.options.timer) {
                     clearTimeout(mon.options.timer);
                     mon.options.timer = null;
                 }
                 // Caller is waiting on this
-                mon.completionResolve(line);
+                mon.completionResolve(mon.resolveData);
             }
         };
         
-        // See if a recently received event can resolve this
-        for(const line of serialMonitor.lines) {
-            if (mon.checkLine(line)) {
-                return Promise.resolve(line);
-            }
+        if (!options.noHistoryCheck) {
+            // See if a recently received event can resolve this
+            for(const line of serialMonitor.lines) {
+                if (mon.checkLine(line)) {
+                    return Promise.resolve(line);
+                }
+            }    
         }
 
         serialMonitor.monitors.push(mon);

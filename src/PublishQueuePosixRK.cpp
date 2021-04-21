@@ -22,6 +22,7 @@ PublishQueuePosix &PublishQueuePosix::withRamQueueSize(size_t size) {
     ramQueueSize = size;
 
     if (stateHandler) {
+        _log.trace("withRamQueueSize(%u)", ramQueueSize);
         checkQueueLimits();
     }
     return *this; 
@@ -32,6 +33,7 @@ PublishQueuePosix &PublishQueuePosix::withFileQueueSize(size_t size) {
     fileQueueSize = size; 
 
     if (stateHandler) {
+        _log.trace("withFileQueueSize(%u)", fileQueueSize);
         checkQueueLimits();
     }
     return *this; 
@@ -199,6 +201,7 @@ void PublishQueuePosix::clearQueues() {
         fileQueue.removeAll(true);
     }
 
+    _log.trace("clearQueues");
 }
 
 void PublishQueuePosix::checkQueueLimits() {

@@ -38,14 +38,16 @@ var particle = new Particle();
 
                 eventMonitor.events.push(data);
 
+
                 for(let ii = 0; ii < eventMonitor.monitors.length; ii++) {
                     let mon = eventMonitor.monitors[ii];
+                    mon.resolveData = data; 
                     if (mon.checkEvent(data)) {
                         // Remove this monitor
                         eventMonitor.monitors.splice(ii, 1);
                         ii--;
 
-                        mon.completion(data);
+                        mon.completion();
                     }
                 }
             });
@@ -58,19 +60,37 @@ var particle = new Particle();
         eventMonitor.readyResolve = resolve;
     })
 
+    eventMonitor.counterEvents = function(options) {
+        let monPromiseArray = [];
+
+        if (!options.start) options.start = 0;
+        if (!options.num) options.num = 1;
+        if (!options.timeout) options.timeout = 15000;
+
+        for(let counter = options.start; counter < (options.start + options.num); counter++) {
+
+            let opts = Object.assign({
+                dataIs: counter.toString()
+            }, options);
+
+            const monPromise = eventMonitor.monitor(opts);
+            monPromiseArray.push(monPromise);
+        }
+        return Promise.all(monPromiseArray);
+    };
 
     eventMonitor.monitor = function(options) {
         let mon = {};
         mon.options = options;
 
-        mon.completion = function(data) {
+        mon.completion = function() {
             if (mon.completionResolve) {
                 if (mon.options.timer) {
                     clearTimeout(mon.options.timer);
                     mon.options.timer = null;
                 }
                 // Caller is waiting on this
-                mon.completionResolve(line);
+                mon.completionResolve(mon.resolveData);
             }
         };
 
@@ -99,10 +119,12 @@ var particle = new Particle();
             return true;
         };
         
-        // See if a recently received event can resolve this
-        for(const event of eventMonitor.events) {
-            if (mon.checkEvent(event)) {
-                return Promise.resolve(event);
+        if (!options.noHistoryCheck) {
+            // See if a recently received event can resolve this
+            for(const event of eventMonitor.events) {
+                if (mon.checkEvent(event)) {
+                    return Promise.resolve(event);
+                }
             }
         }
 

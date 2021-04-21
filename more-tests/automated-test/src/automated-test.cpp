@@ -23,11 +23,19 @@ public:
 
     void loop() {
         if (numPublished < count) {
-            if (millis() - lastPublish >= period) {
-                lastPublish = millis();
-                numPublished++;
+            if (period > 0) {
+                if (millis() - lastPublish >= period) {
+                    lastPublish = millis();
+                    numPublished++;
 
-                publishCounter(true);
+                    publishCounter(true);
+                }
+            }
+            else {
+                while(numPublished < count) {
+                    numPublished++;
+                    publishCounter(true);
+                }
             }
         }
     }
@@ -69,7 +77,7 @@ public:
         count = 1;
         data = "";
         name = "testEvent";
-        period = 1000;
+        period = 0;
         size = 0;
     
         numPublished = 0;
@@ -81,7 +89,7 @@ public:
     int count = 1;
     String data;
     String name = "testEvent";
-    unsigned long period = 1000;
+    unsigned long period = 0;
     int size = 0;
 
     // State
@@ -97,10 +105,11 @@ void setup() {
 	Serial.begin();
 
 	// Configuration of prompt and welcome message
+    /*
 	commandParser
 		.withPrompt("> ")
 		.withWelcome("Publish Queue Automated Test");
-
+*/
 	// Command configuration
 
 
@@ -130,6 +139,7 @@ void setup() {
         else {
             publisher.counter = 0;
         }
+		Log.info("{\"counter\":%d}", publisher.counter);
     });
 
 	commandParser.addCommandHandler("freeMemory", "report free memory", [](SerialCommandParserBase *) {
@@ -159,7 +169,7 @@ void setup() {
 
         cops = cps->getByShortOpt('p');
         if (cops && cops->getNumArgs() == 1) {
-            publisher.name = cops->getArgInt(0);
+            publisher.period = cops->getArgInt(0);
         }
 
         cops = cps->getByShortOpt('s');
