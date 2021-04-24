@@ -11,8 +11,26 @@ const expect = require('expect');
         testSuite.eventMonitor = eventMonitor;
         testSuite.serialMonitor = serialMonitor;
 
-        const tests = [
-            async function() { // 0
+        const skipResetTests = true;
+        const skipCloudManipulatorTests = false;
+
+        const tests = {
+            'warmup':async function(testName) {
+                await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
+                await testSuite.serialMonitor.command('cloud -dw');
+                await testSuite.serialMonitor.command('cloud -c');
+
+                await testSuite.serialMonitor.monitor({msgIs:'Cloud connected', timeout:120000}); 
+                await testSuite.serialMonitor.command('publish -c 1');
+
+                await testSuite.eventMonitor.counterEvents({
+                    start:0,
+                    num:1,
+                    nameIs:'testEvent',
+                    timeout:30000
+                });
+            },
+            'simple 2':async function(testName) {
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
             
                 await testSuite.serialMonitor.command('publish -c 2');
@@ -26,7 +44,7 @@ const expect = require('expect');
     
                 console.log('2 event test passed');                    
             },
-            async function() { // 1
+            'simple 10':async function(testName) { // 1
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
 
                 await testSuite.serialMonitor.command('publish -c 10');
@@ -40,7 +58,7 @@ const expect = require('expect');
     
                 console.log('10 event test passed');
             },
-            async function() { // 2
+            'offline 5':async function(testName) { // 2
                 // Offline, 5 events, then online
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
 
@@ -59,7 +77,12 @@ const expect = require('expect');
 
                 console.log('5 events while disconnected passed');
             },
-            async function() { // 3
+            'offline 5 reset':async function(testName) { // 3
+                if (skipResetTests) {
+                    console.log('skipping ' + testName + ' (skipResetTests = true)');
+                    return;
+                }
+
                 // Offline, 5 events, reset
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
 
@@ -80,7 +103,7 @@ const expect = require('expect');
 
                 console.log('5 events while disconnected then reset passed');
             },
-            async function() { // 4
+            'overflow file queue':async function(testName) { // 4
                 // Overflow file queue test
 
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 6');
@@ -103,8 +126,51 @@ const expect = require('expect');
                 console.log('file queue overflow test passed');
 
             },
-            async function() { // 5
+            'data loss':async function(testName) {
+                if (skipCloudManipulatorTests) {
+                    console.log('skipping ' + testName + ' (skipCloudManipulatorTests = true)');
+                    return;
+                }
+
+                await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
+
+                cloudManipulator.setData(false);
+
+                await testSuite.serialMonitor.command('publish -c 1');
+
+                await testSuite.eventMonitor.counterEvents({
+                    expectTimeout: true,
+                    start:0,
+                    num:1,
+                    nameIs:'testEvent',
+                    timeout:30000                    
+                });
+
+                await testSuite.serialMonitor.monitor({msgIs:'publish failed 0', timeout:30000}); 
+
+                /*
+                serial line 0001439813 [app.pubq] TRACE: publish failed 0
+                serial line 0001439813 [app.pubq] TRACE: writing to files after publish failure
+                serial line 0001439888 [app.pubq] TRACE: writeQueueToFiles fileNum=1
+                */
+                
+                cloudManipulator.setData(true);
+
+                await testSuite.eventMonitor.counterEvents({
+                    start:0,
+                    num:1,
+                    nameIs:'testEvent',
+                    timeout:30000                    
+                });
+
+            },
+            'no ram queue reset':async function(testName) { // 5
                 // No RAM queue reset
+                if (skipResetTests) {
+                    console.log('skipping ' + testName + ' (skipResetTests = true)');
+                    return;
+                }
+
                 await testSuite.serialMonitor.command('queue -c -r 0 -f 100');
 
                 await testSuite.serialMonitor.command('publish -c 6');
@@ -122,7 +188,7 @@ const expect = require('expect');
 
                 console.log('no RAM queue reset passed');
             },
-            async function() { // 6
+            'publish slowly':async function(testName) { // 6
                 // Publish slowly
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
 
@@ -144,7 +210,32 @@ const expect = require('expect');
 
                 console.log('publish slowly passed');
             },
-            async function() { // 7
+            'data loss long':async function(testName) {
+                if (skipCloudManipulatorTests) {
+                    console.log('skipping ' + testName + ' (skipCloudManipulatorTests = true)');
+                    return;
+                }
+
+                await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
+
+                cloudManipulator.setData(false);
+
+                await testSuite.serialMonitor.command('publish -c 10 -p 10000');
+            
+                await testSuite.serialMonitor.monitor({msgIs:'publishing counter=9', timeout:300000}); 
+                
+                cloudManipulator.setData(true);
+
+                await testSuite.eventMonitor.counterEvents({
+                    start:0,
+                    num:10,
+                    nameIs:'testEvent',
+                    timeout:300000                    
+                });
+
+                console.log('data loss long passed');
+            },
+            'continuous events':async function(testName) { // 7
                 // Events test (continuous)
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
                 let counter = 0;
@@ -171,14 +262,26 @@ const expect = require('expect');
                 });
 
             },
-        ];
+        };
 
-        for(let testNum = 10; testNum < tests.length; testNum++) {
+        const testsKeys = Object.keys(tests);
+
+        const startWith = '';
+        if (startWith) {
+            while(testsKeys.length) {
+                if (testsKeys[0] != startWith) {
+                    testsKeys.shift();
+                }
+            }
+        }
+
+        while(testsKeys.length) {
+            const testName = testsKeys.shift();
 
             try {
                 console.log('**************************************************************************');
                 console.log('');
-                console.log('Running test ' + testNum);
+                console.log('Running test ' + testName);
                 console.log('');
                 console.log('**************************************************************************');
                 testSuite.eventMonitor.resetEvents();
@@ -186,17 +289,17 @@ const expect = require('expect');
                 await testSuite.serialMonitor.jsonCommand('counter');
     
                 const mem = await testSuite.serialMonitor.jsonCommand('freeMemory');
-                console.log('test ' + testNum + ' starting freeMemory=' + mem.freeMemory);
+                console.log('test ' + testName + ' starting freeMemory=' + mem.freeMemory);
     
                 const startMs = Date.now();
 
-                await tests[testNum]();
+                await tests[testName](testName);
 
                 const endMs = Date.now();
-                console.log('test ' + testNum + ' completed in ' + (endMs - startMs) + ' ms');
+                console.log('test ' + testName + ' completed in ' + (endMs - startMs) + ' ms');
             }
             catch(e) {
-                console.trace('test ' + testNum + ' failed', e);
+                console.trace('test ' + testName + ' failed', e);
             }
         }
 

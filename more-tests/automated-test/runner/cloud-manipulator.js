@@ -197,7 +197,24 @@ function handleAction(arg, sel) {
     cloudManipulator.modes = {
         data:true,
         latency:0,
-        loss:0
+        loss:0,
+        loseFromDevice:0,
+        loseToDevice:0
+    };
+
+    cloudManipulator.setData = function(on) {
+        cloudManipulator.modes.data = on;
+        console.log('cloud manipulator setData=' + on);
+    };
+
+    cloudManipulator.setLoseFromDevice = function(num) {
+        cloudManipulator.modes.loseFromDevice = num;
+        console.log('cloud manipulator loseFromDevice=' + num);
+    };
+
+    cloudManipulator.setLoseToDevice = function(num) {
+        cloudManipulator.modes.loseToDevice = num;
+        console.log('cloud manipulator loseToDevice=' + num);
     };
 
     cloudManipulator.device = function(addr, port) {
@@ -223,7 +240,7 @@ function handleAction(arg, sel) {
             device.socket.on('message', (msg, rinfo) => {
                 // console.log(`from cloud: ${msg} from ${rinfo.address}:${rinfo.port}`);
                 
-                if (cloudManipulator.modes.data && !cloudManipulator.losePacket()) {
+                if (cloudManipulator.modes.data && !cloudManipulator.losePacket() && !cloudManipulator.loseToDevice()) {
                     if (cloudManipulator.modes.latency == 0) {
                         console.log('< ' + msg.length);
                         cloudManipulator.server.send(msg, device.port, device.addr);
@@ -267,7 +284,7 @@ function handleAction(arg, sel) {
         let d = cloudManipulator.device(addr, port);
         cloudManipulator.devices.push(d);
         return d;
-    }
+    };
 
     cloudManipulator.losePacket = function() {
         if (cloudManipulator.modes.loss > 0) {
@@ -276,8 +293,27 @@ function handleAction(arg, sel) {
         else {
             return false;
         }
-    }
+    };
+
+    cloudManipulator.loseFromDevice = function() {
+        if (cloudManipulator.modes.loseFromDevice > 0) {
+            cloudManipulator.modes.loseFromDevice--;
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
     
+    cloudManipulator.loseToDevice = function() {
+        if (cloudManipulator.modes.loseToDevice > 0) {
+            cloudManipulator.modes.loseToDevice--;
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
 
     cloudManipulator.run = function(config) {
 
@@ -341,7 +377,7 @@ function handleAction(arg, sel) {
                 // console.log(`server got: ${msg} from ${rinfo.address}:${rinfo.port}`);
     
                 var d = cloudManipulator.getDevice(rinfo.address, rinfo.port);
-                if (cloudManipulator.modes.data && !cloudManipulator.losePacket()) {
+                if (cloudManipulator.modes.data && !cloudManipulator.losePacket() && !cloudManipulator.loseFromDevice()) {
                     if (cloudManipulator.modes.latency == 0) {
                         console.log('> ' + msg.length);
                         d.send(msg);

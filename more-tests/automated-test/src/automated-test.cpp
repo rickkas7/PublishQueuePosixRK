@@ -115,21 +115,31 @@ void setup() {
 
 	commandParser.addCommandHandler("cloud", "cloud connect or disconnect", [](SerialCommandParserBase *) {
 		CommandParsingState *cps = commandParser.getParsingState();
+
+        bool wait = (cps->getByShortOpt('w') != 0);
+
         if (cps->getByShortOpt('c')) {
             Log.info("connecting to the Particle cloud");
             Particle.connect();
+            if (wait) {
+                waitUntil(Particle.connected);
+            }
         }
         else
         if (cps->getByShortOpt('d')) {
             Log.info("disconnecting from the Particle cloud");
             Particle.disconnect();            
+            if (wait) {
+                waitUntilNot(Particle.connected);
+            }
         }
         else {
     		Log.info("{\"cloudConnected\":%s}", Particle.connected() ? "true" : "false");
         }
 	})
     .addCommandOption('c', "connect", "connect to cloud")
-    .addCommandOption('d', "disconnect", "disconnect from cloud");
+    .addCommandOption('d', "disconnect", "disconnect from cloud")
+    .addCommandOption('w', "wait", "wait until complete");
 
 	commandParser.addCommandHandler("counter", "set the event counter", [](SerialCommandParserBase *) {
 		CommandParsingState *cps = commandParser.getParsingState();

@@ -89,8 +89,14 @@ var particle = new Particle();
                     clearTimeout(mon.options.timer);
                     mon.options.timer = null;
                 }
-                // Caller is waiting on this
-                mon.completionResolve(mon.resolveData);
+                if (!options.expectTimeout) {
+                    // Caller is waiting on this (normal case)
+                    mon.completionResolve(mon.resolveData);
+                }
+                else {
+                    // Not expected, reject instead
+                    mon.completionReject('unexpected result');
+                }
             }
         };
 
@@ -140,7 +146,12 @@ var particle = new Particle();
         if (mon.options.timeout) {
             mon.timer = setTimeout(function() {
                 if (mon.completionReject) {
-                    mon.completionReject('timeout');
+                    if (!options.expectTimeout) {
+                        mon.completionReject('timeout');
+                    }
+                    else {
+                        mon.completionResolve();   
+                    }
                 }
             }, mon.options.timeout);
         }
