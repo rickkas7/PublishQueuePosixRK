@@ -42,6 +42,14 @@ const expect = require('expect');
                     timeout:15000
                 });
     
+                if (!testSuite.serialMonitor.monitor({msgIs:'publishing ram event=testEvent data=0', historyOnly:true})) {
+                    throw 'missing ram event message 0';
+                }
+                if (!testSuite.serialMonitor.monitor({msgIs:'publishing ram event=testEvent data=1', historyOnly:true})) {
+                    throw 'missing ram event message 1';
+                }
+                
+
                 console.log('2 event test passed');                    
             },
             'simple 10':async function(testName) { // 1
@@ -126,6 +134,32 @@ const expect = require('expect');
                 console.log('file queue overflow test passed');
 
             },
+            'publish slowly':async function(testName) { // 6
+                // Publish slowly
+                await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
+
+                await testSuite.serialMonitor.command('publish -c 10 -p 2000');
+
+                await testSuite.eventMonitor.counterEvents({
+                    start:0,
+                    num:10,
+                    nameIs:'testEvent',
+                    timeout:20000
+                });
+
+                for(let ii = 0; ii < 10; ii++) {
+                    const msg = 'publishing ram event=testEvent data=' + ii;
+                    if (!testSuite.serialMonitor.monitor({msgIs:msg, historyOnly:true})) {
+                        throw 'did not get publishing message for ' + ii;                         
+                    }
+                }
+                
+                if (testSuite.serialMonitor.monitor({msgIncludes:'writeQueueToFiles', historyOnly:true})) {
+                    throw 'messages should not be queued to files';
+                }
+
+                console.log('publish slowly passed');
+            },            
             'data loss':async function(testName) {
                 if (skipCloudManipulatorTests) {
                     console.log('skipping ' + testName + ' (skipCloudManipulatorTests = true)');
@@ -188,28 +222,6 @@ const expect = require('expect');
 
                 console.log('no RAM queue reset passed');
             },
-            'publish slowly':async function(testName) { // 6
-                // Publish slowly
-                await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
-
-                await testSuite.serialMonitor.command('publish -c 10 -p 1010');
-
-                await testSuite.eventMonitor.counterEvents({
-                    start:0,
-                    num:10,
-                    nameIs:'testEvent',
-                    timeout:20000
-                });
-
-                for(let ii = 0; ii < 10; ii++) {
-                    const msg = 'publishing ram event=testEvent data=' + ii;
-                    if (!testSuite.serialMonitor.monitor({msgIs:msg, historyOnly:true})) {
-                        throw 'did not get publishing message for ' + ii;                         
-                    }
-                }
-
-                console.log('publish slowly passed');
-            },
             'data loss long':async function(testName) {
                 if (skipCloudManipulatorTests) {
                     console.log('skipping ' + testName + ' (skipCloudManipulatorTests = true)');
@@ -240,6 +252,8 @@ const expect = require('expect');
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
                 let counter = 0;
 
+                let origFreeMemory;
+
                 await new Promise((resolve, reject) => {
                     setInterval(async function() {
                         testSuite.eventMonitor.resetEvents();
@@ -247,7 +261,14 @@ const expect = require('expect');
     
                         const mem = await testSuite.serialMonitor.jsonCommand('freeMemory');
                         console.log('test starting freeMemory=' + mem.freeMemory);
-                    
+
+                        if (!origFreeMemory) {
+                            origFreeMemory = mem.freeMemory;
+                        }
+                        if (origFreeMemory != mem.freeMemory) {
+                            console.log('free memory changed, originally ' + origFreeMemory);
+                        }
+                     
                         await testSuite.serialMonitor.command('publish -c 3');
     
                         await testSuite.eventMonitor.counterEvents({
