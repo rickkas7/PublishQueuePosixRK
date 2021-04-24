@@ -19,3 +19,34 @@ number of useful features you might want to adapt for your own projects:
 dig 1.udp.particle.io
 ```
 
+### Setting up the device
+
+
+The first thing you need to do is change your device to point at the server. 
+
+- Note the IP address of the computer you're running the node.js server on.
+- Put the device in DFU mode (blinking yellow)
+- Run the command:
+
+```
+particle keys server --protocol udp --host 65.19.178.42 --port 5684 ec.pub.der
+```
+
+The ec.pub.der file is the public server key of the real Particle cloud server. It's included in the automated-test directory so you don't need to download it separately.
+
+Replace 65.19.178.42 with the IP address of your server. Note that this must be a public IP address so the device can see it; it can't be an internal 192.168.x.x or 10.x.x.x address! You can use UDP port forwarding from your router to an internal address for port 5684.
+
+
+
+## Restore your device
+
+To put the device back to normal cloud mode run the command with no additional options.
+
+```
+particle keys server
+```
+
+
+
+
+

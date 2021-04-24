@@ -118,6 +118,15 @@ var particle = new Particle();
             
             return true;
         };
+
+        if (options.historyOnly) {
+            for(const event of eventMonitor.events) {
+                if (mon.checkEvent(event)) {
+                    return true;
+                }
+            }
+            return false;
+        }
         
         if (!options.noHistoryCheck) {
             // See if a recently received event can resolve this

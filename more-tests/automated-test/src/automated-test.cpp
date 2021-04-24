@@ -99,7 +99,7 @@ public:
 };
 
 Publisher publisher;
-
+bool doReset = false;
 
 void setup() {
 	Serial.begin();
@@ -211,8 +211,7 @@ void setup() {
     .addCommandOption('r', "ram", "ram queue size", false, 1);
 
 	commandParser.addCommandHandler("reset", "reset device", [](SerialCommandParserBase *) {
-        Log.info("resetting device");
-        System.reset();
+        doReset = true;
 	});
 
 	commandParser.addCommandHandler("version", "report Device OS version", [](SerialCommandParserBase *) {
@@ -241,4 +240,8 @@ void loop() {
     commandParser.loop();
     publisher.loop();
 
+    if (doReset) {
+        Log.info("resetting device");
+        System.reset();
+    }
 }

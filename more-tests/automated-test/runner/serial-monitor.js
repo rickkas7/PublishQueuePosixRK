@@ -23,12 +23,17 @@ const SerialPort = require('serialport');
         serialMonitor.port.on('open', function () {
             console.log('serial port opened');
             serialMonitor.readyResolve();
-        
-            
-        
         });
+
+        serialMonitor.port.on('close', function () {
+            console.log('serial port closed');
+            setTimeout(function() {
+                serialMonitor.port.open();
+            }, 3000);
+        });
+
         serialMonitor.port.on('error', function (err) {
-            console.log('Serial Port Error: ', err.message)
+            console.log('Serial Port Error: ', err.message);
         })
         serialMonitor.port.on('data', function (data) {
             // console.log('Data:', data.toString());
@@ -127,8 +132,6 @@ const SerialPort = require('serialport');
                 const level = m[3];
                 const msg = m[4];
 
-                console.log('msg ' + msg);
-
                 if (options.category) {
                     if (options.category !== category) {
                         return false;
@@ -139,6 +142,11 @@ const SerialPort = require('serialport');
                         return false;
                     }
                 }
+                if (options.msgIs) {
+                    if (msg != options.msgIs) {
+                        return false;
+                    }
+                }                
                 if (options.msgIncludes) {
                     if (!msg.includes(options.msgIncludes)) {
                         return false;
