@@ -123,6 +123,28 @@ const expect = require('expect');
                 console.log('no RAM queue reset passed');
             },
             async function() { // 6
+                // Publish slowly
+                await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
+
+                await testSuite.serialMonitor.command('publish -c 10 -p 1010');
+
+                await testSuite.eventMonitor.counterEvents({
+                    start:0,
+                    num:10,
+                    nameIs:'testEvent',
+                    timeout:20000
+                });
+
+                for(let ii = 0; ii < 10; ii++) {
+                    const msg = 'publishing ram event=testEvent data=' + ii;
+                    if (!testSuite.serialMonitor.monitor({msgIs:msg, historyOnly:true})) {
+                        throw 'did not get publishing message for ' + ii;                         
+                    }
+                }
+
+                console.log('publish slowly passed');
+            },
+            async function() { // 7
                 // Events test (continuous)
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
                 let counter = 0;
@@ -135,15 +157,15 @@ const expect = require('expect');
                         const mem = await testSuite.serialMonitor.jsonCommand('freeMemory');
                         console.log('test starting freeMemory=' + mem.freeMemory);
                     
-                        await testSuite.serialMonitor.command('publish -c 2');
+                        await testSuite.serialMonitor.command('publish -c 3');
     
                         await testSuite.eventMonitor.counterEvents({
                             start:counter,
-                            num:2,
+                            num:3,
                             nameIs:'testEvent'
                         });
                         
-                        counter += 2;
+                        counter += 3;
                         console.log('publish 3 events complete counter=' + counter);
                     }, 15000);              
                 });
@@ -151,7 +173,7 @@ const expect = require('expect');
             },
         ];
 
-        for(let testNum = 0; testNum < tests.length; testNum++) {
+        for(let testNum = 10; testNum < tests.length; testNum++) {
 
             try {
                 console.log('**************************************************************************');

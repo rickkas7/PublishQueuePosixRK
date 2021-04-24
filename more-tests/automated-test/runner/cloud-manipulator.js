@@ -207,7 +207,7 @@ function handleAction(arg, sel) {
 
         device.send = function(msg) {
             // Send to the real UDP device service from our client-specific socket
-            device.socket.send(msg, dsPort, dsAddr);
+            device.socket.send(msg, cloudManipulator.config.dsPort, cloudManipulator.config.dsAddr);
         }
 
         device.init = function() {
@@ -217,16 +217,16 @@ function handleAction(arg, sel) {
             
             device.socket.on('error', (err) => {
                 console.log(`from cloud error:\n${err.stack}`);
-                server.close();
+                cloudManipulator.server.close();
             });
     
             device.socket.on('message', (msg, rinfo) => {
                 // console.log(`from cloud: ${msg} from ${rinfo.address}:${rinfo.port}`);
                 
-                if (modes.data && !losePacket()) {
-                    if (modes.latency == 0) {
+                if (cloudManipulator.modes.data && !cloudManipulator.losePacket()) {
+                    if (cloudManipulator.modes.latency == 0) {
                         console.log('< ' + msg.length);
-                        server.send(msg, device.port, device.addr);
+                        cloudManipulator.server.send(msg, device.port, device.addr);
                     }
                     else {
                         var port = device.port;
@@ -235,8 +235,8 @@ function handleAction(arg, sel) {
                         console.log('< ' + msg.length + ' queued');
                         setTimeout(function() {
                             console.log('< ' + msg.length);
-                            server.send(msg, port, addr);					
-                        }, modes.latency)
+                            cloudManipulator.server.send(msg, port, addr);					
+                        }, cloudManipulator.modes.latency)
                     }
                 }
                 else {
@@ -259,13 +259,13 @@ function handleAction(arg, sel) {
     cloudManipulator.devices = [];
 
     cloudManipulator.getDevice = function(addr, port) {
-        for(let d of devices) {
+        for(let d of cloudManipulator.devices) {
             if (d.addr == addr && d.port == port) {
                 return d;
             }
         }
         let d = cloudManipulator.device(addr, port);
-        devices.push(d);
+        cloudManipulator.devices.push(d);
         return d;
     }
 
@@ -365,16 +365,12 @@ function handleAction(arg, sel) {
                 cloudManipulator.readyResolve();
             });
     
-            cloudManipulator.server.bind(cloudManipulator.config.dsPort);    
+            cloudManipulator.server.bind(cloudManipulator.config.dsPort, localAddr);    
         }
 
-        cloudManipulator.ready = new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             cloudManipulator.readyResolve = resolve;
         });
-        
-
-
-        return true;
     };
 
     

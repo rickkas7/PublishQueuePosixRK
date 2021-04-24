@@ -186,7 +186,16 @@ const SerialPort = require('serialport');
                 mon.completionResolve(mon.resolveData);
             }
         };
-        
+
+        if (options.historyOnly) {
+            for(const line of serialMonitor.lines) {
+                if (mon.checkLine(line)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         if (!options.noHistoryCheck) {
             // See if a recently received event can resolve this
             for(const line of serialMonitor.lines) {

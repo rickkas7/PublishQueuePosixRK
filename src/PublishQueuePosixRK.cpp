@@ -346,6 +346,9 @@ void PublishQueuePosix::statePublishWait() {
             WITH_LOCK(*this) {
                 ramQueue.push_front(curEvent);
             }
+            // Then write the entire queue to files
+            _log.trace("writing to files after publish failure");
+            writeQueueToFiles();
         }
     }
 
