@@ -119,7 +119,7 @@ const SerialPort = require('serialport');
 
         return mon;
     }
-    
+   
     serialMonitor.monitor = function(options) {
         let mon = {};
         mon.options = options;

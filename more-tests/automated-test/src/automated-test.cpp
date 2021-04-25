@@ -28,34 +28,26 @@ public:
                     lastPublish = millis();
                     numPublished++;
 
-                    publishCounter(true);
+                    publishPaddedCounter(size, true);
                 }
             }
             else {
                 while(numPublished < count) {
                     numPublished++;
-                    publishCounter(true);
+                    publishPaddedCounter(size, true);
                 }
             }
         }
     }
 
-
-    void publishCounter(bool withAck) {
-        Log.info("publishing counter=%d", counter);
-
-        char buf[32];
-        snprintf(buf, sizeof(buf), "%d", counter++);
-        PublishQueuePosix::instance().publish(name, buf, PRIVATE | WITH_ACK);
-    }
-
-    void publishPaddedCounter(int size) {
+    void publishPaddedCounter(int size, bool withAck) {
+        // This message is monitored by the automated test tool. If you edit this, change that too.
         Log.info("publishing padded counter=%d size=%d", counter, size);
 
         char buf[particle::protocol::MAX_EVENT_DATA_LENGTH + 1];
-        snprintf(buf, sizeof(buf), "%05d", counter++);
 
         if (size > 0) {
+            snprintf(buf, sizeof(buf), "%08d", counter++);
             if (size > (int)(sizeof(buf) - 1)) {
                 size = (int)(sizeof(buf) - 1);
             }
@@ -68,6 +60,9 @@ public:
                 }
             }
             buf[size] = 0;
+        }
+        else {
+            snprintf(buf, sizeof(buf), "%d", counter++);
         }
 
         PublishQueuePosix::instance().publish(name, buf, PRIVATE | WITH_ACK);
@@ -143,14 +138,20 @@ void setup() {
 
 	commandParser.addCommandHandler("counter", "set the event counter", [](SerialCommandParserBase *) {
 		CommandParsingState *cps = commandParser.getParsingState();
-        if (cps->getNumExtraArgs() == 1) {
-            publisher.counter = cps->getArgInt(0);
+        CommandOptionParsingState *cops;
+
+        cops = cps->getByShortOpt('v');
+        if (cops && cops->getNumArgs() == 1) {
+            publisher.counter = cops->getArgInt(0);
         }
-        else {
-            publisher.counter = 0;
+        else if (cps->getByShortOpt('r')) {
+            publisher.counter = rand();
         }
+
 		Log.info("{\"counter\":%d}", publisher.counter);
-    });
+    })
+    .addCommandOption('v', "value", "value to set the counter to", false, 1)
+    .addCommandOption('r', "random", "set to random number");
 
 	commandParser.addCommandHandler("freeMemory", "report free memory", [](SerialCommandParserBase *) {
 		Log.info("{\"freeMemory\":%lu}", System.freeMemory());

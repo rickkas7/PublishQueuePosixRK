@@ -134,6 +134,7 @@ void PublishQueuePosix::writeQueueToFiles() {
                 write(fd, event, sizeof(PublishQueueEvent) + strlen(event->eventData));
                 close(fd);
 
+                // This message is monitored by the automated test tool. If you edit this, change that too.
                 _log.trace("writeQueueToFiles fileNum=%d", fileNum);
             }
             fileQueue.addFileToQueue(fileNum);
@@ -297,6 +298,7 @@ void PublishQueuePosix::stateWait() {
         publishComplete = false;
         publishSuccess = false;
 
+        // This message is monitored by the automated test tool. If you edit this, change that too.
         _log.trace("publishing %s event=%s data=%s", (curFileNum ? "file" : "ram"), curEvent->eventName, curEvent->eventData);
 
         if (BackgroundPublish::instance().publish(curEvent->eventName, curEvent->eventData, curEvent->flags, 
@@ -333,6 +335,7 @@ void PublishQueuePosix::statePublishWait() {
     }
     else {
         // Wait and retry
+        // This message is monitored by the automated test tool. If you edit this, change that too.
         _log.trace("publish failed %d", curFileNum);
         durationMs = waitAfterFailure;
 

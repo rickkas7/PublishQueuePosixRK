@@ -69,8 +69,20 @@ var particle = new Particle();
 
         for(let counter = options.start; counter < (options.start + options.num); counter++) {
 
+            let str = counter.toString();
+            if (options.size > 0) {
+                if (str.length < 8) {
+                    str = '00000000'.substr(0, 8 - str.length) + str;
+                }
+                const startLen = str.length;
+                for(let ii = str.length; ii < options.size; ii++) {
+                    str += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.substr((ii - startLen) % 26, 1);
+                }
+            }
+            // console.log('searching for ' + str);
+
             let opts = Object.assign({
-                dataIs: counter.toString()
+                dataIs: str
             }, options);
 
             const monPromise = eventMonitor.monitor(opts);

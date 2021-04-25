@@ -202,6 +202,14 @@ function handleAction(arg, sel) {
         loseToDevice:0
     };
 
+    cloudManipulator.reset = function() {
+        cloudManipulator.modes.data = true;
+        cloudManipulator.modes.latency = 0;
+        cloudManipulator.modes.loss = 0;
+        cloudManipulator.modes.loseFromDevice = 0;
+        cloudManipulator.modes.loseToDevice = 0;
+    };
+
     cloudManipulator.setData = function(on) {
         cloudManipulator.modes.data = on;
         console.log('cloud manipulator setData=' + on);
