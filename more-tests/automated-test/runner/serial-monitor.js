@@ -56,7 +56,7 @@ const SerialPort = require('serialport');
                     line = line.trim();
                     if (line) {
                         serialMonitor.lines.push(line);
-                        console.log('serial line ' + line);   
+                        console.log('serial ' + line);   
 
                         for(let ii = 0; ii < serialMonitor.monitors.length; ii++) {
                             let mon = serialMonitor.monitors[ii];

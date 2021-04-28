@@ -40,6 +40,11 @@ PublishQueuePosix &PublishQueuePosix::withFileQueueSize(size_t size) {
 }
 
 void PublishQueuePosix::setup() {
+    if (system_thread_get_state(nullptr) != spark::feature::ENABLED) {
+        _log.error("SYSTEM_THREAD(ENABLED) is required");
+        return;
+    }
+
     os_mutex_recursive_create(&mutex);
 
     // Register a system reset handler

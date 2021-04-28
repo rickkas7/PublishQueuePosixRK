@@ -29,7 +29,7 @@ The first thing you need to do is change your device to point at the server.
 - Run the command:
 
 ```
-particle keys server --protocol udp --host 65.19.178.42 --port 5684 ec.pub.der
+particle keys server --protocol udp --host 24.92.248.215 --port 5684 ec.pub.der
 ```
 
 The ec.pub.der file is the public server key of the real Particle cloud server. It's included in the automated-test directory so you don't need to download it separately.

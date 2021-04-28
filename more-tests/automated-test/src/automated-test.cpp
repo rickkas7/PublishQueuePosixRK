@@ -247,6 +247,14 @@ void setup() {
 }
 
 void loop() {
+    static unsigned long exitTime = 0;
+    if (exitTime != 0) {
+        if (millis() - exitTime > 500) {
+            Log.info("delay outside of loop %lu", millis() - exitTime);
+        }
+    }
+    unsigned long startTime = millis();
+
     PublishQueuePosix::instance().loop();
     commandParser.loop();
     publisher.loop();
@@ -255,4 +263,9 @@ void loop() {
         Log.info("resetting device");
         System.reset();
     }
+
+    if (millis() - startTime > 500) {
+        Log.info("delay inside loop %lu", millis() - startTime);
+    }
+    exitTime = millis();
 }

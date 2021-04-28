@@ -1,6 +1,9 @@
 #ifndef __PUBLISHQUEUEPOSIXRK_H
 #define __PUBLISHQUEUEPOSIXRK_H
 
+// Github: https://github.com/rickkas7/PublishQueuePosixRK
+// License: MIT
+
 #include "Particle.h"
 #include "SequentialFileRK.h"
 
@@ -54,6 +57,8 @@ public:
     /**
      * @brief Sets the RAM based queue size (default is 2)
      * 
+     * @param size The size to set (can be 0, default is 2)
+     * 
      * You can set this to 0 and the events will be stored on the flash
      * file system immediately. This is the best option if the events must
      * not be lost in the event of a sudden reboot. 
@@ -65,17 +70,24 @@ public:
      */
     PublishQueuePosix &withRamQueueSize(size_t size);
 
+    /**
+     * @brief Gets the size of the RAM queue
+     */
     size_t getRamQueueSize() const { return ramQueueSize; };
 
     /**
      * @brief Sets the file-based queue size (default is 100)
      * 
+     * @param size The maximum number of files to store (one event per file)
+     * 
      * If you exceed this number of events, the oldest event is discarded.
      */
     PublishQueuePosix &withFileQueueSize(size_t size);
 
+    /**
+     * @brief Gets the file queue size
+     */
     size_t getFileQueueSize() const { return fileQueueSize; };
-
 
     /**
      * @brief Sets the directory to use as the queue directory. This is required!
@@ -124,7 +136,7 @@ public:
 	 * This function almost always returns true. If you queue more events than fit in the buffer the
 	 * oldest (sometimes second oldest) is discarded.
 	 */
-	inline 	bool publish(const char *eventName, PublishFlags flags1, PublishFlags flags2 = PublishFlags()) {
+	inline bool publish(const char *eventName, PublishFlags flags1, PublishFlags flags2 = PublishFlags()) {
 		return publishCommon(eventName, "", 60, flags1, flags2);
 	}
 
@@ -144,7 +156,7 @@ public:
 	 * This function almost always returns true. If you queue more events than fit in the buffer the
 	 * oldest (sometimes second oldest) is discarded.
 	 */
-	inline  bool publish(const char *eventName, const char *data, PublishFlags flags1, PublishFlags flags2 = PublishFlags()) {
+	inline bool publish(const char *eventName, const char *data, PublishFlags flags1, PublishFlags flags2 = PublishFlags()) {
 		return publishCommon(eventName, data, 60, flags1, flags2);
 	}
 
@@ -168,7 +180,7 @@ public:
 	 * This function almost always returns true. If you queue more events than fit in the buffer the
 	 * oldest (sometimes second oldest) is discarded.
 	 */
-	inline  bool publish(const char *eventName, const char *data, int ttl, PublishFlags flags1, PublishFlags flags2 = PublishFlags()) {
+	inline bool publish(const char *eventName, const char *data, int ttl, PublishFlags flags1, PublishFlags flags2 = PublishFlags()) {
 		return publishCommon(eventName, data, ttl, flags1, flags2);
 	}
 
@@ -207,11 +219,19 @@ public:
     /**
      * @brief Pause or resume publishing events
      * 
+     * @param value The value to set, true = pause, false = normal operation
+     * 
      * If called while a publish is in progress, that publish will still proceed, but
      * the next event (if any) will not be attempted.
+     * 
+     * This is used by the automated test tool; you probably won't need to manually
+     * manage this under normal circumstances.
      */
     void setPausePublishing(bool value) { pausePublishing = value; }
 
+    /**
+     * @brief Gets the state of the pause publishing flag
+     */
     bool getPausePublishing() const { return pausePublishing; };
 
     /**
@@ -225,15 +245,49 @@ public:
      */
     size_t getNumEvents();
 
+    /**
+     * @brief Lock the queue protection mutex
+     * 
+     * This is done internally; you probably won't need to call this yourself.
+     * It needs to be public for the WITH_LOCK() macro to work properly.
+     */
     void lock() { os_mutex_recursive_lock(mutex); };
+
+    /**
+     * @brief Attempt the queue protection mutex
+     */
     bool tryLock() { return os_mutex_recursive_trylock(mutex); };
+
+    /**
+     * @brief Unlock the queue protection mutex
+     */
     void unlock() { os_mutex_recursive_unlock(mutex); };
 
+    /**
+     * @brief Magic bytes store at the beginning of event files for validity checking
+     */
     static const uint32_t FILE_MAGIC = 0x31b67663;
+    
+    /**
+     * @brief Version of the file header for events
+     */
     static const uint8_t FILE_VERSION = 1;
 
 protected:
+    /**
+     * @brief Constructor 
+     * 
+     * This class is a singleton; you never create one of these directly. Use 
+     * PublishQueuePosix::instance() to get the singleton instance.
+     */
     PublishQueuePosix();
+
+    /**
+     * @brief Destructor
+     * 
+     * This class is never deleted; once the singleton is created it cannot
+     * be destroyed.
+     */
     virtual ~PublishQueuePosix();
 
     /**
@@ -246,8 +300,26 @@ protected:
      */
     PublishQueuePosix& operator=(const PublishQueuePosix&) = delete;
 
+    /**
+     * @brief Allocate a new event structure in RAM
+     * 
+     * The PublishEventQueue structure contains a header and is variably sized for the eventData.
+     * 
+     * May return NULL if eventName or eventData are invalid (too long) or out of memory.
+     * 
+     * You must delete the result from this method when you are done using it. 
+     */
     PublishQueueEvent *newRamEvent(const char *eventName, const char *eventData, PublishFlags flags);
 
+    /**
+     * @brief Read an event from a sequentially numbered file 
+     * 
+     * @param fileNum The file number to read 
+     * 
+     * May return NULL if file does not exist, or out of memory.
+     * 
+     * You must delete the result from this method when you are done using it. 
+     */
     PublishQueueEvent *readQueueFile(int fileNum);
 
     /**
@@ -257,37 +329,64 @@ protected:
      */
     void checkQueueLimits();
 
-
+    /**
+     * @brief Callback for BackgroundPublish library
+     */
     void publishCompleteCallback(bool succeeded, const char *eventName, const char *eventData);
 
+    /**
+     * @brief State handler for waiting to connect to the Particle cloud
+     * 
+     * Next state: stateWait
+     */
     void stateConnectWait();
+
+    /**
+     * @brief State handler for waiting to publish
+     * 
+     * stateTime and durationMs determine whether to stay in this state waiting, or whether
+     * to publish and go into statePublishWait.
+     * 
+     * Next state: statePublishWait or stateConnectWait
+     */
     void stateWait();
+
+    /**
+     * @brief State handler for waiting for publish to complete
+     * 
+     * Next state: stateWait
+     */
     void statePublishWait();
 
+    /**
+     * @brief SequentialFileRK library object for maintaining the queue of files on the POSIX file system
+     */
     SequentialFile fileQueue;
-    size_t ramQueueSize = 2;
-    size_t fileQueueSize = 100;
 
-    os_mutex_recursive_t mutex;
-    std::deque<PublishQueueEvent*> ramQueue;
 
-    PublishQueueEvent *curEvent = 0;
-    int curFileNum = 0;
-    unsigned long stateTime = 0;
-    unsigned long durationMs = 0;
-    bool publishComplete = false;
-    bool publishSuccess = false;
-    bool pausePublishing = false;
+    size_t ramQueueSize = 2; //!< size of the queue in RAM
+    size_t fileQueueSize = 100; //!< size of the queue on the flash file system
 
-    unsigned long waitAfterConnect = 2000;
-    unsigned long waitBetweenPublish = 1000;
-    unsigned long waitAfterFailure = 30000;
+    os_mutex_recursive_t mutex; //!< mutex for protecting the queue
+    std::deque<PublishQueueEvent*> ramQueue; //!< Queue in RAM
 
-    std::function<void(PublishQueuePosix&)> stateHandler = 0;
+    PublishQueueEvent *curEvent = 0; //!< Current event being published
+    int curFileNum = 0; //!< Current file number being published (0 if from RAM queue)
+    unsigned long stateTime = 0; //!< millis() value when entering the state, used for stateWait
+    unsigned long durationMs = 0; //!< how long to wait before publishing in milliseconds, used in stateWait
+    bool publishComplete = false; //!< true if the publish has completed (successfully or not)
+    bool publishSuccess = false; //!< true if the publish succeeded
+    bool pausePublishing = false; //!< flag to pause publishing (used from automated test)
 
-    static void systemEventHandler(system_event_t event, int param);
+    unsigned long waitAfterConnect = 2000; //!< time to wait after Particle.connected() before publishing
+    unsigned long waitBetweenPublish = 1000; //!< how long to wait in milliseconds between publishes
+    unsigned long waitAfterFailure = 30000; //!< how long to wait after failing to publish before trying again
 
-    static PublishQueuePosix *_instance;
+    std::function<void(PublishQueuePosix&)> stateHandler = 0; //!< state handler (stateConnectWait, stateWait, etc).
+
+    static void systemEventHandler(system_event_t event, int param); //!< system event handler, used to detect reset events
+
+    static PublishQueuePosix *_instance; //!< singleton instance of this class
 };
 
 #endif /* __PUBLISHQUEUEPOSIXRK_H */

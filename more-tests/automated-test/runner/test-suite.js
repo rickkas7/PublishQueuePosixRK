@@ -1,6 +1,8 @@
 const expect = require('expect');
 
 (function(testSuite) {
+    testSuite.skipResetTests = false;
+    testSuite.skipCloudManipulatorTests = false;
 
 
     testSuite.run = async function(config, cloudManipulator, eventMonitor, serialMonitor) {
@@ -12,9 +14,6 @@ const expect = require('expect');
         testSuite.serialMonitor = serialMonitor;
 
         let counter;
-
-        const skipResetTests = true;
-        const skipCloudManipulatorTests = false;
 
         const tests = {
             'warmup':async function(testName) {
@@ -29,9 +28,8 @@ const expect = require('expect');
                     start:counter,
                     num:1,
                     nameIs:'testEvent',
-                    timeout:30000
+                    timeout:120000
                 });
-                console.log('test passed ' + testName);
             },
             'simple 2':async function(testName) {
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
@@ -52,8 +50,6 @@ const expect = require('expect');
                     throw 'missing ram event message 1';
                 }
                 
-
-                console.log('test passed ' + testName);
             },
             'simple 10':async function(testName) { // 1
                 await testSuite.serialMonitor.command('queue -c -r 2 -f 100');
@@ -67,7 +63,6 @@ const expect = require('expect');
                     timeout:30000
                 });
     
-                console.log('test passed ' + testName);
             },
             '622 byte 10':async function(testName) { 
                 const size = 622;
@@ -84,7 +79,6 @@ const expect = require('expect');
                     timeout:30000
                 });
     
-                console.log('test passed ' + testName);
             },
             'offline 5':async function(testName) { // 2
                 // Offline, 5 events, then online
@@ -103,11 +97,10 @@ const expect = require('expect');
                     timeout:15000
                 });
 
-                console.log('test passed ' + testName);
             },
             'offline 5 reset':async function(testName) { // 3
-                if (skipResetTests) {
-                    console.log('skipping ' + testName + ' (skipResetTests = true)');
+                if (testSuite.skipResetTests) {
+                    console.log('skipping ' + testName + ' (testSuite.skipResetTests = true)');
                     return;
                 }
 
@@ -126,10 +119,9 @@ const expect = require('expect');
                     start:counter,
                     num:5,
                     nameIs:'testEvent',
-                    timeout:15000
+                    timeout:30000
                 });
 
-                console.log('test passed ' + testName);
             },
             'overflow file queue':async function(testName) { // 4
                 // Overflow file queue test
@@ -142,7 +134,7 @@ const expect = require('expect');
                     start:counter+4,
                     num:6,
                     nameIs:'testEvent',
-                    timeout:15000
+                    timeout:30000
                 });
                 console.log('checking that events were discarded correctly')
                 for(let ii = 0; ii < 4; ii++) {
@@ -150,8 +142,6 @@ const expect = require('expect');
                         console.log('should not have received event ' + (counter + ii));
                     }                
                 }
-
-                console.log('test passed ' + testName);
 
             },
             'publish slowly':async function(testName) { // 6
@@ -168,9 +158,9 @@ const expect = require('expect');
                 });
 
                 for(let ii = 0; ii < 10; ii++) {
-                    const msg = 'publishing ram event=testEvent data=' + ii;
+                    const msg = 'publishing ram event=testEvent data=' + (counter + ii);
                     if (!testSuite.serialMonitor.monitor({msgIs:msg, historyOnly:true})) {
-                        throw 'did not get publishing message for ' + ii;                         
+                        throw 'did not get publishing message for ' + (counter + ii);                         
                     }
                 }
                 
@@ -178,11 +168,10 @@ const expect = require('expect');
                     throw 'messages should not be queued to files';
                 }
 
-                console.log('test passed ' + testName);
             },            
             'data loss':async function(testName) {
-                if (skipCloudManipulatorTests) {
-                    console.log('skipping ' + testName + ' (skipCloudManipulatorTests = true)');
+                if (testSuite.skipCloudManipulatorTests) {
+                    console.log('skipping ' + testName + ' (testSuite.skipCloudManipulatorTests = true)');
                     return;
                 }
 
@@ -217,12 +206,11 @@ const expect = require('expect');
                     timeout:30000                    
                 });
 
-                console.log('test passed ' + testName);
             },
             'no ram queue reset':async function(testName) { // 5
                 // No RAM queue reset
-                if (skipResetTests) {
-                    console.log('skipping ' + testName + ' (skipResetTests = true)');
+                if (testSuite.skipResetTests) {
+                    console.log('skipping ' + testName + ' (testSuite.skipResetTests = true)');
                     return;
                 }
 
@@ -242,11 +230,10 @@ const expect = require('expect');
                     timeout:15000
                 });
 
-                console.log('test passed ' + testName);
             },
             'data loss long':async function(testName) {
-                if (skipCloudManipulatorTests) {
-                    console.log('skipping ' + testName + ' (skipCloudManipulatorTests = true)');
+                if (testSuite.skipCloudManipulatorTests) {
+                    console.log('skipping ' + testName + ' (testSuite.skipCloudManipulatorTests = true)');
                     return;
                 }
 
@@ -267,7 +254,6 @@ const expect = require('expect');
                     timeout:300000                    
                 });
 
-                console.log('test passed ' + testName);
             },
             'continuous events':async function(testName) { // 7
                 // Events test (continuous)
@@ -343,6 +329,7 @@ const expect = require('expect');
                 console.log('test ' + testName + ' completed in ' + (endMs - startMs) + ' ms');
             }
             catch(e) {
+                console.log('############ Test Failure! ' + testName);
                 console.trace('test ' + testName + ' failed', e);
             }
         }
