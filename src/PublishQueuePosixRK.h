@@ -246,6 +246,13 @@ public:
     size_t getNumEvents();
 
     /**
+     * @brief Check the queue limit, discarding events as necessary
+     * 
+     * When the RAM queue exceeds the limit, all events are moved into files. 
+     */
+    void checkQueueLimits();
+    
+    /**
      * @brief Lock the queue protection mutex
      * 
      * This is done internally; you probably won't need to call this yourself.
@@ -323,14 +330,7 @@ protected:
     PublishQueueEvent *readQueueFile(int fileNum);
 
     /**
-     * @brief Check the queue limit, discarding events as necessary
-     * 
-     * When the RAM queue exceeds the limit, all events are moved into files. 
-     */
-    void checkQueueLimits();
-
-    /**
-     * @brief Callback for BackgroundPublish library
+     * @brief Callback for BackgroundPublishRK library
      */
     void publishCompleteCallback(bool succeeded, const char *eventName, const char *eventData);
 

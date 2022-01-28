@@ -366,6 +366,11 @@ void unlock()
 
 ## Version History
 
+### 0.0.2 (2022-01-28)
+
+- Rename BackgroundPublishRK class to BackgroundPublishRK to avoid conflict with a class of the same name in Tracker Edge.
+
+
 ### 0.0.1 (2021-04-28)
 
 - Initial version

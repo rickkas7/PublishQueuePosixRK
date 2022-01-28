@@ -51,7 +51,7 @@ void PublishQueuePosix::setup() {
     System.on(reset | cloud_status, systemEventHandler);
 
     // Start the background publish thread
-    BackgroundPublish::instance().start();
+    BackgroundPublishRK::instance().start();
 
     fileQueue.scanDir();
 
@@ -306,7 +306,7 @@ void PublishQueuePosix::stateWait() {
         // This message is monitored by the automated test tool. If you edit this, change that too.
         _log.trace("publishing %s event=%s data=%s", (curFileNum ? "file" : "ram"), curEvent->eventName, curEvent->eventData);
 
-        if (BackgroundPublish::instance().publish(curEvent->eventName, curEvent->eventData, curEvent->flags, 
+        if (BackgroundPublishRK::instance().publish(curEvent->eventName, curEvent->eventData, curEvent->flags, 
             [this](bool succeeded, const char *eventName, const char *eventData, const void *context) {
                 publishCompleteCallback(succeeded, eventName, eventData);
             })) {
