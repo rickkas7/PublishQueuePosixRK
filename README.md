@@ -317,6 +317,19 @@ Gets the state of the pause publishing flag.
 ```
 bool getPausePublishing() const
 ```
+---
+
+### bool PublishQueuePosix::getCanSleep() const 
+
+Determine if it's a good time to go to sleep. Added in version 0.0.3.
+
+```
+bool getCanSleep() const
+```
+
+If a publish is not in progress and the queue is empty, returns true.
+
+If pausePublishing is true, then return true if either the current publish has completed, or not cloud connected.
 
 ---
 
@@ -365,6 +378,10 @@ void unlock()
 ```
 
 ## Version History
+
+### 0.0.3 (2022-03-07)
+
+- Added getCanSleep() method to determine if the queue has been sent and it's safe to sleep. 
 
 ### 0.0.2 (2022-01-28)
 

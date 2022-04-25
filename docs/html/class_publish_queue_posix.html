@@ -136,6 +136,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>clearQueues</b> ()</t
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>getPausePublishing</b> () const</td></tr>
 <tr class="memdesc:ae10fe9f388241227f5e431a23ac0c980"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the state of the pause publishing flag. <br /></td></tr>
 <tr class="separator:ae10fe9f388241227f5e431a23ac0c980"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf40ee8cdda04825a5cd39a0e590ee29"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_publish_queue_posix.html#aaf40ee8cdda04825a5cd39a0e590ee29">getCanSleep</a> () const</td></tr>
+<tr class="memdesc:aaf40ee8cdda04825a5cd39a0e590ee29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determine if it's a good time to go to sleep.  <a href="class_publish_queue_posix.html#aaf40ee8cdda04825a5cd39a0e590ee29">More...</a><br /></td></tr>
+<tr class="separator:aaf40ee8cdda04825a5cd39a0e590ee29"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1e04445ef87bdfdf78fc5d7a2a67ac46"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_publish_queue_posix.html#a1e04445ef87bdfdf78fc5d7a2a67ac46">getNumEvents</a> ()</td></tr>
 <tr class="memdesc:a1e04445ef87bdfdf78fc5d7a2a67ac46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the total number of events queued.  <a href="class_publish_queue_posix.html#a1e04445ef87bdfdf78fc5d7a2a67ac46">More...</a><br /></td></tr>
 <tr class="separator:a1e04445ef87bdfdf78fc5d7a2a67ac46"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -264,6 +267,10 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>publishSuccess</b> = 
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>pausePublishing</b> = false</td></tr>
 <tr class="memdesc:ad5fcd50e137cd4d3579723bc74e49204"><td class="mdescLeft">&#160;</td><td class="mdescRight">flag to pause publishing (used from automated test) <br /></td></tr>
 <tr class="separator:ad5fcd50e137cd4d3579723bc74e49204"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adff0f7824b7cf6adbdb933f697be63d4"><td class="memItemLeft" align="right" valign="top"><a id="adff0f7824b7cf6adbdb933f697be63d4" name="adff0f7824b7cf6adbdb933f697be63d4"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>canSleep</b> = false</td></tr>
+<tr class="memdesc:adff0f7824b7cf6adbdb933f697be63d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">returns true if this is a good time to go to sleep <br /></td></tr>
+<tr class="separator:adff0f7824b7cf6adbdb933f697be63d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac92a2d4304a3f26cbe9320929b2a93f2"><td class="memItemLeft" align="right" valign="top"><a id="ac92a2d4304a3f26cbe9320929b2a93f2" name="ac92a2d4304a3f26cbe9320929b2a93f2"></a>
 unsigned long&#160;</td><td class="memItemRight" valign="bottom"><b>waitAfterConnect</b> = 2000</td></tr>
 <tr class="memdesc:ac92a2d4304a3f26cbe9320929b2a93f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">time to wait after Particle.connected() before publishing <br /></td></tr>
@@ -365,6 +372,35 @@ static <a class="el" href="class_publish_queue_posix.html">PublishQueuePosix</a>
 
 <p>Check the queue limit, discarding events as necessary. </p>
 <p >When the RAM queue exceeds the limit, all events are moved into files. </p>
+
+</div>
+</div>
+<a id="aaf40ee8cdda04825a5cd39a0e590ee29" name="aaf40ee8cdda04825a5cd39a0e590ee29"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaf40ee8cdda04825a5cd39a0e590ee29">&#9670;&nbsp;</a></span>getCanSleep()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool PublishQueuePosix::getCanSleep </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Determine if it's a good time to go to sleep. </p>
+<p >If a publish is not in progress and the queue is empty, returns true.</p>
+<p >If pausePublishing is true, then return true if either the current publish has completed, or not cloud connected. </p>
 
 </div>
 </div>

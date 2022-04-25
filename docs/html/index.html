@@ -94,27 +94,7 @@ $(function() {
 <p >Also remember that events can only be sent out one per second, so a very long queue will take a while to send!</p>
 <div class="fragment"><div class="line"><a class="code hl_function" href="class_publish_queue_posix.html#af641a55b459d3a0b465945bc87f8c9e4">PublishQueuePosix::instance</a>().<a class="code hl_function" href="class_publish_queue_posix.html#a5963d98e3b9c4e1254cedd4cb0d3a89c">withFileQueueSize</a>(50);</div>
 <div class="ttc" id="aclass_publish_queue_posix_html_a5963d98e3b9c4e1254cedd4cb0d3a89c"><div class="ttname"><a href="class_publish_queue_posix.html#a5963d98e3b9c4e1254cedd4cb0d3a89c">PublishQueuePosix::withFileQueueSize</a></div><div class="ttdeci">PublishQueuePosix &amp; withFileQueueSize(size_t size)</div><div class="ttdoc">Sets the file-based queue size (default is 100)</div><div class="ttdef"><b>Definition:</b> PublishQueuePosixRK.cpp:32</div></div>
-</div><!-- fragment --><h1>Webhook confirmation</h1>
-<p ><em>Added in version 0.1.0</em></p>
-<p >Normally events are removed from the queue when Particle.publish returns true, meaning the event was accepted by the Particle cloud.</p>
-<p >If you plan to process your event using a webhook, it's possible to extend the confirmation process further, to the point where your server handing the webhook confirms that it has received the event!</p>
-<ul>
-<li>Your event must be handled by a webhook (not SSE).</li>
-<li>You must set the correct hook-response and hook-error in the webhook configuration.</li>
-<li>Your server must return an error in one of a few supported ways.</li>
-<li>You must enable the feature and configure a few parameters.</li>
-<li>This feature only works with claimed devices. Unclaimed product devices cannot receive webhook replies and cannot use this feature.</li>
-</ul>
-<p >In addition, there are two optional features that can be enabled:</p>
-<ul>
-<li>Server busy or server error backoff can slow down requests when your server is overloaded.</li>
-<li>Preemptive backoff can be enabled to delay the publishing of an event for a random period of time. For example, if your fleet of devices always runs a task hourly, this can be used to delay the publish for up minute after the hour so all devices don't publish at exactly the same time, reducing peak server load.</li>
-</ul>
-<h2>Library configuration</h2>
-<h2>Webhook configuration</h2>
-<p >You must configure the webhook appropriately, or the responses will not reach the device! In many cases it may differ from the default values.</p>
-<h2>Backoff options</h2>
-<h1>Dependencies</h1>
+</div><!-- fragment --><h1>Dependencies</h1>
 <p >This library depends on two additional libraries:</p>
 <ul>
 <li><a href="https://github.com/rickkas7/SequentialFileRK">SequentialFileRK</a> manages the queue on the flash file system</li>
@@ -271,9 +251,13 @@ $(function() {
 <p >Unlock the queue protection mutex.</p>
 <div class="fragment"><div class="line">void unlock()</div>
 </div><!-- fragment --><h1>Version History</h1>
-<h2>0.1.0 (2021-09-18)</h2>
+<h2>0.0.3 (2022-03-07)</h2>
 <ul>
-<li>Added webhook confirmation option</li>
+<li>Added getCanSleep() method to determine if the queue has been sent and it's safe to sleep. Can also be combined with setPausePublishing() to determine if the current event only has been sent and to leave the rest in the queue until later.</li>
+</ul>
+<h2>0.0.2 (2022-01-28)</h2>
+<ul>
+<li>Rename BackgroundPublishRK class to BackgroundPublishRK to avoid conflict with a class of the same name in Tracker Edge.</li>
 </ul>
 <h2>0.0.1 (2021-04-28)</h2>
 <ul>

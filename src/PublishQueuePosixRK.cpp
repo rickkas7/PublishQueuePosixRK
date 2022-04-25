@@ -260,6 +260,11 @@ void PublishQueuePosix::stateConnectWait() {
         durationMs = waitAfterConnect;
         stateHandler = &PublishQueuePosix::stateWait;
     }
+    else {
+        if (pausePublishing || getNumEvents() == 0) {
+            canSleep = true;
+        }
+    }
 }
 
 
@@ -269,11 +274,12 @@ void PublishQueuePosix::stateWait() {
         return;
     }
 
-    if (millis() - stateTime < durationMs) {
+    if (pausePublishing) {
+        canSleep = true;
         return;
     }
 
-    if (pausePublishing) {
+    if (millis() - stateTime < durationMs) {
         return;
     }
     
@@ -302,6 +308,7 @@ void PublishQueuePosix::stateWait() {
         stateHandler = &PublishQueuePosix::statePublishWait;
         publishComplete = false;
         publishSuccess = false;
+        canSleep = false;
 
         // This message is monitored by the automated test tool. If you edit this, change that too.
         _log.trace("publishing %s event=%s data=%s", (curFileNum ? "file" : "ram"), curEvent->eventName, curEvent->eventData);

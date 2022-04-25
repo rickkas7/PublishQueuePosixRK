@@ -235,6 +235,16 @@ public:
     bool getPausePublishing() const { return pausePublishing; };
 
     /**
+     * @brief Determine if it's a good time to go to sleep
+     * 
+     * If a publish is not in progress and the queue is empty, returns true. 
+     * 
+     * If pausePublishing is true, then return true if either the current publish has
+     * completed, or not cloud connected.
+     */
+    bool getCanSleep() const { return canSleep; };
+
+    /**
      * @brief Gets the total number of events queued
      * 
      * This is the number of events in the RAM-based queue and the file-based
@@ -377,6 +387,7 @@ protected:
     bool publishComplete = false; //!< true if the publish has completed (successfully or not)
     bool publishSuccess = false; //!< true if the publish succeeded
     bool pausePublishing = false; //!< flag to pause publishing (used from automated test)
+    bool canSleep = false; //!< returns true if this is a good time to go to sleep
 
     unsigned long waitAfterConnect = 2000; //!< time to wait after Particle.connected() before publishing
     unsigned long waitBetweenPublish = 1000; //!< how long to wait in milliseconds between publishes
