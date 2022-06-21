@@ -379,6 +379,11 @@ void unlock()
 
 ## Version History
 
+### 0.0.4 (2022-06-21)
+
+- When setPausePublishing(false), set the canSleep flag to false if there are events in the queue
+- The canSleep flag was not set after sending the last event
+
 ### 0.0.3 (2022-03-07)
 
 - Added getCanSleep() method to determine if the queue has been sent and it's safe to sleep. 

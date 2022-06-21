@@ -227,7 +227,7 @@ public:
      * This is used by the automated test tool; you probably won't need to manually
      * manage this under normal circumstances.
      */
-    void setPausePublishing(bool value) { pausePublishing = value; }
+    void setPausePublishing(bool value);
 
     /**
      * @brief Gets the state of the pause publishing flag

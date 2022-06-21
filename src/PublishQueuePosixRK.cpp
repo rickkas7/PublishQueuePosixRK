@@ -210,6 +210,19 @@ void PublishQueuePosix::clearQueues() {
     _log.trace("clearQueues");
 }
 
+void PublishQueuePosix::setPausePublishing(bool value) { 
+    pausePublishing = value; 
+
+    if (!value) {
+        // When resuming publishing, update the canSleep flag
+        if (getNumEvents() != 0) {
+            canSleep = false;
+        }
+    }
+}
+
+
+
 void PublishQueuePosix::checkQueueLimits() {
     WITH_LOCK(*this) {
         if (ramQueue.size() > ramQueueSize) {
@@ -319,6 +332,10 @@ void PublishQueuePosix::stateWait() {
             })) {
             // Successfully started publish
         }
+    }
+    else {
+        // No events, can sleep
+        canSleep = true;
     }
 }
 void PublishQueuePosix::statePublishWait() {
