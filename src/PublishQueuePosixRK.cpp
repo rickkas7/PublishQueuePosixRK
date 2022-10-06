@@ -268,15 +268,12 @@ void PublishQueuePosix::publishCompleteCallback(bool succeeded, const char *even
 
 
 void PublishQueuePosix::stateConnectWait() {
+    canSleep = (pausePublishing || getNumEvents() == 0);
+
     if (Particle.connected()) {
         stateTime = millis();
         durationMs = waitAfterConnect;
         stateHandler = &PublishQueuePosix::stateWait;
-    }
-    else {
-        if (pausePublishing || getNumEvents() == 0) {
-            canSleep = true;
-        }
     }
 }
 
@@ -293,6 +290,7 @@ void PublishQueuePosix::stateWait() {
     }
 
     if (millis() - stateTime < durationMs) {
+        canSleep = (getNumEvents() == 0);
         return;
     }
     

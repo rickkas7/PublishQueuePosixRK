@@ -11,7 +11,7 @@ for d in "${DIRS[@]}"; do
 done
 
 particle library upload
-# particle library publish
+particle library publish
 
 mv $TEMPDIR/* .
 rmdir $TEMPDIR

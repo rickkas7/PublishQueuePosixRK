@@ -379,6 +379,11 @@ void unlock()
 
 ## Version History
 
+### 0.0.5 (2022-10-06)
+
+- I believe I fixed a situation where getCanSleep() can return true during the waitAfterConnect period after connecting
+even though there are events in the queue.
+
 ### 0.0.4 (2022-06-21)
 
 - When setPausePublishing(false), set the canSleep flag to false if there are events in the queue
