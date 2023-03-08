@@ -6,6 +6,7 @@
 
 #include "Particle.h"
 #include "SequentialFileRK.h"
+#include "Lockable.h"
 
 #include <deque>
 
@@ -115,7 +116,7 @@ public:
     /**
      * @brief You must call this from setup() to initialize this library
      */
-    void setup();
+    void setup(TimedLock *ParticlePublishLock);
 
     /**
      * @brief You must call the loop method from the global loop() function!

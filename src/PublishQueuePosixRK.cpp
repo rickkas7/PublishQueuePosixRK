@@ -39,7 +39,7 @@ PublishQueuePosix &PublishQueuePosix::withFileQueueSize(size_t size) {
     return *this; 
 }
 
-void PublishQueuePosix::setup() {
+void PublishQueuePosix::setup(TimedLock *ParticlePublishLock) {
     if (system_thread_get_state(nullptr) != spark::feature::ENABLED) {
         _log.error("SYSTEM_THREAD(ENABLED) is required");
         return;
@@ -51,6 +51,7 @@ void PublishQueuePosix::setup() {
     System.on(reset | cloud_status, systemEventHandler);
 
     // Start the background publish thread
+    BackgroundPublishRK::instance().setup(ParticlePublishLock);
     BackgroundPublishRK::instance().start();
 
     fileQueue.scanDir();
