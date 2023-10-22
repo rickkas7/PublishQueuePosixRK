@@ -113,6 +113,28 @@ public:
     const char *getDirPath() const { return fileQueue.getDirPath(); };
 
     /**
+     * @brief Adds a callback function to call with publish is complete
+     * 
+     * @param cb Callback function or C++ lambda.
+     * @return PublishQueuePosix& 
+     * 
+     * The callback has this prototype and can be a function or a C++11 lambda, which allows the callback to be a class method.
+     * 
+     * void callback(bool succeeded, const char *eventName, const char *eventData)
+     * 
+     * The parameters are:
+     * - succeeded: true if the publish succeeded or false if faled
+     * - eventName: The original event name that was published (a copy of it, not the original pointer)
+     * - eventData: The original event data
+     * 
+     * Note that this callback will be called from the background thread used for publishing. You should not
+     * perform any lengthy operations and you should avoid using large amounts of stack space during this
+     * callback. 
+     */
+    PublishQueuePosix &withPublishCompleteUserCallback(std::function<void(bool succeeded, const char *eventName, const char *eventData)> cb) { publishCompleteUserCallback = cb; return *this; };
+
+
+    /**
      * @brief You must call this from setup() to initialize this library
      */
     void setup();
@@ -392,6 +414,8 @@ protected:
     unsigned long waitAfterConnect = 2000; //!< time to wait after Particle.connected() before publishing
     unsigned long waitBetweenPublish = 1000; //!< how long to wait in milliseconds between publishes
     unsigned long waitAfterFailure = 30000; //!< how long to wait after failing to publish before trying again
+
+    std::function<void(bool succeeded, const char *eventName, const char *eventData)> publishCompleteUserCallback = 0; //!< User callback for publish complete
 
     std::function<void(PublishQueuePosix&)> stateHandler = 0; //!< state handler (stateConnectWait, stateWait, etc).
 

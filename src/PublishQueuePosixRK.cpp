@@ -264,6 +264,10 @@ size_t PublishQueuePosix::getNumEvents() {
 void PublishQueuePosix::publishCompleteCallback(bool succeeded, const char *eventName, const char *eventData) {
     publishComplete = true;
     publishSuccess = succeeded;
+
+    if (publishCompleteUserCallback) {
+        publishCompleteUserCallback(succeeded, eventName, eventData);
+    }
 }
 
 

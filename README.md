@@ -379,6 +379,11 @@ void unlock()
 
 ## Version History
 
+### 0.0.6 (2023-10-22)
+
+- Added `withPublishCompleteUserCallback()` to set a callback function or C++ lambda that is called when 
+publish is complete (successfully or not).
+
 ### 0.0.5 (2022-10-06)
 
 - I believe I fixed a situation where getCanSleep() can return true during the waitAfterConnect period after connecting
