@@ -379,6 +379,10 @@ void unlock()
 
 ## Version History
 
+### 0.0.7 (2024-07-12)
+
+- Fixed the particle.ignore file to prevent uploading docs and more-tests.
+
 ### 0.0.6 (2023-10-22)
 
 - Added `withPublishCompleteUserCallback()` to set a callback function or C++ lambda that is called when 
