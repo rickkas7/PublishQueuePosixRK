@@ -9,6 +9,10 @@ This library works a bit differently than [PublishQueueAsyncRK](https://github.c
 - Or it can always write events to the file system for maximum prevention of event loss
 - The file system queue supports discarding the oldest events when the size limit is exceeded
 
+There is also [PublishQueueExtRK](https://github.com/rickkas7/PublishQueueExtRK) which only works with 
+Device OS 6.3.0 and later and stores the queue on the flash file system but supports increased publish rate limit, 
+increased event data size, and binary and structured event data.
+
 ## Usage
 
 In many cases, you simply call this from setup:
