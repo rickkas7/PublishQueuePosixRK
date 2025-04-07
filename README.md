@@ -24,7 +24,7 @@ PublishQueuePosix::instance().setup();
 And this from loop:
 
 ```cpp
-PublishQueuePosix::instance().setup();
+PublishQueuePosix::instance().loop();
 ```
 
 To publish you do something like this:
