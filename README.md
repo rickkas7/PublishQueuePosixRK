@@ -383,6 +383,10 @@ void unlock()
 
 ## Version History
 
+### 0.0.8 (2025-09-29)
+
+- Updated to SequentialFileRK 0.0.4 to fix an issue that could cause file system corruption.
+
 ### 0.0.7 (2024-07-12)
 
 - Fixed the particle.ignore file to prevent uploading docs and more-tests.
