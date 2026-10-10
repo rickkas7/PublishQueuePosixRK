@@ -176,7 +176,7 @@ PublishQueueEvent *PublishQueuePosix::readQueueFile(int fileNum) {
             if (result) {
                 read(fd, result, eventSize);
 
-                if (((char *)result)[eventSize - 1] == 0 && strlen(result->eventName) < (sizeof(PublishQueueEvent::eventName) - 1)) {
+                if (((char *)result)[eventSize - 1] == 0 && strnlen(result->eventName, sizeof(PublishQueueEvent::eventName)) < sizeof(PublishQueueEvent::eventName)) {
                     _log.trace("readQueueFile %d event=%s data=%s", fileNum, result->eventName, result->eventData);
                 }
                 else {
