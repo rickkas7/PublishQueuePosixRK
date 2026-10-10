@@ -128,7 +128,7 @@ void PublishQueuePosix::writeQueueToFiles() {
             int fileNum = fileQueue.reserveFile();
 
             int fd = open(fileQueue.getPathForFileNum(fileNum), O_RDWR | O_CREAT);
-            if (fd) {
+            if (fd >= 0) {
                 PublishQueueFileHeader hdr;
                 hdr.magic = FILE_MAGIC;
                 hdr.version = FILE_VERSION;
@@ -141,8 +141,11 @@ void PublishQueuePosix::writeQueueToFiles() {
 
                 // This message is monitored by the automated test tool. If you edit this, change that too.
                 _log.trace("writeQueueToFiles fileNum=%d", fileNum);
+                fileQueue.addFileToQueue(fileNum);
             }
-            fileQueue.addFileToQueue(fileNum);
+            else {
+                _log.error("writeQueueToFiles fileNum=%d open failed errno=%d, event discarded", fileNum, errno);
+            }
 
             delete event;
         }
@@ -154,7 +157,7 @@ PublishQueueEvent *PublishQueuePosix::readQueueFile(int fileNum) {
     PublishQueueEvent *result = NULL;
 
     int fd = open(fileQueue.getPathForFileNum(fileNum), O_RDONLY);
-    if (fd) {
+    if (fd >= 0) {
         struct stat sb;
         fstat(fd, &sb);
 
