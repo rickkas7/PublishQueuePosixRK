@@ -309,12 +309,16 @@ void PublishQueuePosix::stateWait() {
         }
     }
     else {
-        if (!ramQueue.empty()) {
-            curEvent = ramQueue.front();
-            ramQueue.pop_front();
-        }
-        else {
-            curEvent = NULL;
+        // publish() can be called from other threads, and the system event handler
+        // calls writeQueueToFiles(), so ramQueue is only accessed under the lock
+        WITH_LOCK(*this) {
+            if (!ramQueue.empty()) {
+                curEvent = ramQueue.front();
+                ramQueue.pop_front();
+            }
+            else {
+                curEvent = NULL;
+            }
         }
     }
 
