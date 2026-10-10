@@ -262,8 +262,10 @@ size_t PublishQueuePosix::getNumEvents() {
 }
 
 void PublishQueuePosix::publishCompleteCallback(bool succeeded, const char *eventName, const char *eventData) {
-    publishComplete = true;
+    // Called from the background publish thread. Store the result before the
+    // completion flag so loop() never sees a completed publish without its result.
     publishSuccess = succeeded;
+    publishComplete = true;
 
     if (publishCompleteUserCallback) {
         publishCompleteUserCallback(succeeded, eventName, eventData);
